@@ -156,8 +156,8 @@ class ResnetRunnable(standard_runnable.StandardRunnableWithWarmup):
     else:
       self.test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(
           'test_accuracy', dtype=tf.float32)
-    # self.test_corrects = tf.keras.metrics.Sum(
-    #     'test_corrects', dtype=tf.float32)
+    self.test_corrects = tf.keras.metrics.Sum(
+        'test_corrects', dtype=tf.float32)
     self.num_eval_steps = common.get_num_eval_steps(flags_obj)
 
     self.checkpoint = tf.train.Checkpoint(
@@ -304,7 +304,7 @@ class ResnetRunnable(standard_runnable.StandardRunnableWithWarmup):
       # Unscale the grads
       if self.flags_obj.dtype == 'fp16':
         grads = self.optimizer.get_unscaled_gradients(grads)
-      
+
       return logits, loss, grads
 
     def _maybe_apply_grads_and_clear(distribution):
@@ -389,7 +389,7 @@ class ResnetRunnable(standard_runnable.StandardRunnableWithWarmup):
       self.test_loss.reset_states()
     if self.test_accuracy:
       self.test_accuracy.reset_states()
-    # self.test_corrects.reset_states()
+    self.test_corrects.reset_states()
 
     epoch_num = int(self.epoch_helper.current_epoch)
     mlp_log.mlperf_print('eval_start', None,
@@ -414,16 +414,16 @@ class ResnetRunnable(standard_runnable.StandardRunnableWithWarmup):
 
       if self.test_accuracy:
         self.test_accuracy.update_state(labels, logits)
-        # tf.print('labels.shape: ', labels.shape,
-        #          ', logits.shape: ', logits.shape,
-        #          ', result: ', self.test_accuracy.result())
-      # self.test_corrects.update_state(
-      #     tf.cast(
-      #         tf.reduce_sum(
-      #             tf.cast(
-      #                 tf.equal(
-      #                     tf.cast(tf.argmax(logits, axis=1), labels.dtype),
-      #                     labels), tf.int32)), tf.float32))
+        tf.print('labels.shape: ', labels.shape,
+                 ', logits.shape: ', logits.shape,
+                 ', result: ', self.test_accuracy.result())
+      self.test_corrects.update_state(
+          tf.cast(
+              tf.reduce_sum(
+                  tf.cast(
+                      tf.equal(
+                          tf.cast(tf.argmax(logits, axis=1), labels.dtype),
+                          labels), tf.int32)), tf.float32))
 
     self.strategy.run(step_fn, args=(next(iterator),))
 
@@ -434,11 +434,11 @@ class ResnetRunnable(standard_runnable.StandardRunnableWithWarmup):
                          metadata={'epoch_num': epoch_num + 1})
 
     eval_accuracy = float(self.test_accuracy.result())
-    # eval_accuracy = float(self.test_corrects.result()
-    #                      ) / imagenet_preprocessing.NUM_IMAGES['validation']
-    # eval_accuracy = float(self.test_accuracy.result()) * \
-    #     self.flags_obj.batch_size * self.num_eval_steps / \
-    #     imagenet_preprocessing.NUM_IMAGES['validation']
+    eval_accuracy = float(self.test_corrects.result()
+                         ) / imagenet_preprocessing.NUM_IMAGES['validation']
+    eval_accuracy = float(self.test_accuracy.result()) * \
+        self.flags_obj.batch_size * self.num_eval_steps / \
+        imagenet_preprocessing.NUM_IMAGES['validation']
     mlp_log.mlperf_print(
         'eval_accuracy', eval_accuracy, metadata={'epoch_num': epoch_num + 1})
 

@@ -34,6 +34,18 @@ from tf2_common.utils.mlp_log import mlp_log
 import common
 import imagenet_preprocessing
 import resnet_runnable
+import os
+
+os.environ["XLA_FLAGS"]="--xla_gpu_cuda_data_dir=/usr/local/cuda-11.7"
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"       # 使用第二块GPU（从0开始）
+
+# # 设置GPU内存按需分配
+# from tensorflow.compat.v1 import ConfigProto
+# from tensorflow.compat.v1 import InteractiveSession
+# config = ConfigProto()
+# config.gpu_options.allow_growth = True
+# session = InteractiveSession(config=config)
 
 flags.DEFINE_boolean(name='use_tf_function', default=True,
                      help='Wrap the train and test step inside a '
