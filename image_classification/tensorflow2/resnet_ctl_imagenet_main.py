@@ -140,7 +140,8 @@ def run(flags_obj):
       enable_xla=flags_obj.enable_xla)
   performance.set_mixed_precision_policy(flags_core.get_tf_dtype(flags_obj))
 
-  if tf.config.list_physical_devices('GPU'):
+  gpus = tf.config.list_physical_devices('GPU')
+  if gpus:
     if flags_obj.tf_gpu_thread_mode:
       datasets_num_private_threads = keras_utils.set_gpu_thread_mode_and_count(
           per_gpu_thread_count=flags_obj.per_gpu_thread_count,
@@ -149,6 +150,19 @@ def run(flags_obj):
       if not flags_obj.datasets_num_private_threads:
         flags_obj.datasets_num_private_threads = datasets_num_private_threads
     common.set_cudnn_batchnorm_mode()
+    try:
+      tf.config.set_logical_device_configuration(
+          gpus[0],
+          [tf.config.LogicalDeviceConfiguration(memory_limit=15360)])
+      tf.config.set_logical_device_configuration(
+          gpus[1],
+          [tf.config.LogicalDeviceConfiguration(memory_limit=15360)])
+      logical_gpus = tf.config.list_logical_devices('GPU')
+      print(len(gpus), "Physical GPU,", len(logical_gpus), "Logical GPUs")
+    except RuntimeError as e:
+      # Virtual devices must be set before GPUs have been initialized
+      print(e)
+
 
   # TODO(anj-s): Set data_format without using Keras.
   data_format = flags_obj.data_format
@@ -156,7 +170,7 @@ def run(flags_obj):
     data_format = ('channels_first'
                    if tf.test.is_built_with_cuda() else 'channels_last')
   tf.keras.backend.set_image_data_format(data_format)
-
+  flags_obj.distribution_strategy="mirrored"
   strategy = distribution_utils.get_distribution_strategy(
       distribution_strategy=flags_obj.distribution_strategy,
       num_gpus=flags_obj.num_gpus,

@@ -139,7 +139,7 @@ class Controller(object):
         summary_interval=self.summary_interval)
     if self.global_step:
       tf.summary.experimental.set_step(self.global_step)
-
+    self.eval_summary_dir = eval_summary_dir or checkpoint_manager.directory
     eval_summary_writer = tf.summary.create_file_writer(
         eval_summary_dir) if eval_summary_dir else None
     self.eval_summary_manager = utils.SummaryManager(

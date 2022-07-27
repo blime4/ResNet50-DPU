@@ -45,11 +45,11 @@ DEFAULT_IMAGE_SIZE = 224
 NUM_CHANNELS = 3
 
 NUM_IMAGES = {
-    'train': 1250,
-    'validation': 250,
+    'train': 641024,
+    'validation': 50000,
 }
 
-_NUM_TRAIN_FILES = 1
+_NUM_TRAIN_FILES = 512
 _SHUFFLE_BUFFER = 10000
 
 _R_MEAN = 123.68
